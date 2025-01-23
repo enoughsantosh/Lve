@@ -7,7 +7,8 @@ import {
     setDoc, 
     getDoc, 
     updateDoc, 
-    serverTimestamp 
+    serverTimestamp,
+    collection  // Add this line
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
 // Firebase configuration
@@ -38,5 +39,6 @@ export {
     setDoc, 
     getDoc, 
     updateDoc, 
-    serverTimestamp 
+    serverTimestamp, 
+    collection  // Add this line
 };
