@@ -236,6 +236,11 @@ document.getElementById(`accept-${request.from}`).addEventListener('click', asyn
                 timestamp: serverTimestamp(),
             });
         } else {
+            // If already connected, redirect
+            if (partnerDoc.data().partnerId === request.from) {
+                window.location.href = 'main.html';
+                return;
+            }
             await updateDoc(partnerRef, {
                 partnerId: request.from,
                 status: 'connected',
@@ -255,6 +260,11 @@ document.getElementById(`accept-${request.from}`).addEventListener('click', asyn
                 timestamp: serverTimestamp(),
             });
         } else {
+            // If already connected, redirect
+            if (partnerDocFrom.data().partnerId === userId) {
+                window.location.href = 'main.html';
+                return;
+            }
             await updateDoc(partnerRefFrom, {
                 partnerId: userId,
                 status: 'connected',
@@ -262,9 +272,9 @@ document.getElementById(`accept-${request.from}`).addEventListener('click', asyn
             });
         }
 
-        // Reject all other pending requests from the accepted user
-        const requestsSnapshot = await getDocs(query(collection(db, 'requests'), where('from', '==', request.from)));
-        requestsSnapshot.forEach(async (reqDoc) => {
+        // Remove all pending requests for both users
+        const requestsSnapshotFrom = await getDocs(query(collection(db, 'requests'), where('from', '==', request.from)));
+        requestsSnapshotFrom.forEach(async (reqDoc) => {
             if (reqDoc.id !== docSnapshot.id) {
                 await updateDoc(reqDoc.ref, {
                     status: 'rejected',
@@ -272,8 +282,20 @@ document.getElementById(`accept-${request.from}`).addEventListener('click', asyn
             }
         });
 
-        alert('You are now connected!');
-        window.location.href = 'main.html'; // Redirect to main page
+        const requestsSnapshotTo = await getDocs(query(collection(db, 'requests'), where('to', '==', userId)));
+        requestsSnapshotTo.forEach(async (reqDoc) => {
+            if (reqDoc.id !== docSnapshot.id) {
+                await updateDoc(reqDoc.ref, {
+                    status: 'rejected',
+                });
+            }
+        });
+
+        // Notify both users
+        alert('You are now connected! You will be redirected.');
+        
+        // Redirect the user who clicked accept
+        window.location.href = 'main.html';
     } catch (error) {
         console.error("Error updating partner documents: ", error);
         alert("An error occurred while accepting the request.");
