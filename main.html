@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ADIKAR - Main</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: linear-gradient(135deg, #8A4FFF 0%, #5F3DC4 100%);
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .profile, .partner {
+            margin-bottom: 30px;
+        }
+
+        .profile h2, .partner h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #ffcc00;
+        }
+
+        .profile p, .partner p {
+            margin: 5px 0;
+        }
+
+        .poke-btn {
+            background-color: #ffcc00;
+            color: black;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #32cd32;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+            animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        }
+
+        @keyframes fadein {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeout {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="profile">
+            <h2>Your Details</h2>
+            <p><b>Name:</b> <span id="user-name"></span></p>
+            <p><b>Unique ID:</b> <span id="user-id"></span></p>
+        </div>
+
+        <div class="partner">
+            <h2>Connected Partner</h2>
+            <p><b>Name:</b> <span id="partner-name">Not connected</span></p>
+            <p><b>Unique ID:</b> <span id="partner-id">---</span></p>
+            <button id="poke-partner" class="poke-btn" style="display: none;">Poke Partner</button>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Your partner has been poked!</div>
+
+    <script type="module">
+        import { db, doc, getDoc, updateDoc, onSnapshot } from './firebase-config.js';
+
+        const userId = sessionStorage.getItem('user_uid');
+        const userNameElem = document.getElementById('user-name');
+        const userIdElem = document.getElementById('user-id');
+        const partnerNameElem = document.getElementById('partner-name');
+        const partnerIdElem = document.getElementById('partner-id');
+        const pokeButton = document.getElementById('poke-partner');
+        const toast = document.getElementById('toast');
+
+        let partnerId = null;
+
+        // Load User Details
+        const loadUserDetails = async () => {
+            const userDoc = await getDoc(doc(db, 'users', userId));
+            if (userDoc.exists()) {
+                const user = userDoc.data();
+                userNameElem.textContent = user.name;
+                userIdElem.textContent = user.id;
+            }
+        };
+
+        // Load Partner Details
+        const loadPartnerDetails = async () => {
+            const partnerDoc = await getDoc(doc(db, 'partners', userId));
+            if (partnerDoc.exists()) {
+                const partnerData = partnerDoc.data();
+
+                if (partnerData.status === 'connected') {
+                    partnerId = partnerData.partnerId;
+                    const partnerUserDoc = await getDoc(doc(db, 'users', partnerId));
+
+                    if (partnerUserDoc.exists()) {
+                        const partner = partnerUserDoc.data();
+                        partnerNameElem.textContent = partner.name;
+                        partnerIdElem.textContent = partner.id;
+                        pokeButton.style.display = 'block';
+                    }
+                }
+            }
+        };
+
+        // Poke Partner
+        pokeButton.addEventListener('click', async () => {
+            if (!partnerId) return alert('No partner connected.');
+
+            await updateDoc(doc(db, 'notifications', partnerId), {
+                message: 'Your partner has poked you!',
+                timestamp: new Date(),
+            });
+
+            showToast('Your partner has been poked!');
+        });
+
+        // Show Toast
+        const showToast = (message) => {
+            toast.textContent = message;
+            toast.style.display = 'block';
+
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        };
+
+        // Listen for Notifications
+        onSnapshot(doc(db, 'notifications', userId), (docSnapshot) => {
+            if (docSnapshot.exists()) {
+                const data = docSnapshot.data();
+                showToast(data.message);
+            }
+        });
+
+        // Initialize
+        loadUserDetails();
+        loadPartnerDetails();
+    </script>
+</body>
+</html>
