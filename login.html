@@ -219,87 +219,74 @@
             },
             retina_detect: true
         });
+    </script>
+    
+        
+          <script type="module">
+        // Import Firebase modules from config
+        import { auth, db, googleProvider, signInWithPopup, doc, setDoc, serverTimestamp } from './firebase-config.js';
 
-        // Firebase configuration
-                // Firebase configuration
-        const firebaseConfig = {
-    apiKey: "AIzaSyDLW0P7Op6coJkNzJj0ck9pLNdneJplcbI",
-    authDomain: "love-6996.firebaseapp.com",
-    projectId: "love-6996",
-    storageBucket: "love-6996.firebasestorage.app",
-    messagingSenderId: "1050433920317",
-    appId: "1:1050433920317:web:99246747017f6bdca1b954",
-    measurementId: "G-EKDTE6WQY1"
-  };
+        const signInButton = document.getElementById('google-signin-button');
+        const errorContainer = document.getElementById('error-container');
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        const googleProvider = new firebase.auth.GoogleAuthProvider();
-
-        // Google Sign-In
-        document.getElementById('google-signin-button').addEventListener('click', () => {
-            const signInButton = document.getElementById('google-signin-button');
-            const errorContainer = document.getElementById('error-container');
-
-            // Clear previous errors
+        // Clear previous errors
+        const clearErrors = () => {
             errorContainer.textContent = '';
+        };
 
-            // Add loading state
+        // Handle Google Sign-In
+        const handleGoogleSignIn = async () => {
+            clearErrors();
             signInButton.classList.add('loading');
 
-            auth.signInWithPopup(googleProvider)
-                .then((result) => {
-                    const user = result.user;
-                    
-                    // Save user to Firestore
-                    return db.collection("users").doc(user.uid).set({
-                        name: user.displayName,
-                        email: user.email,
-                        picture: user.photoURL,
-                        id: user.uid,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    }).then(() => {
-                        // Store token and user info
-                        localStorage.setItem('user_token', result.credential.accessToken);
-                        localStorage.setItem('user_uid', user.uid);
-                        
-                        // Redirect to next page
-                        window.location.href = 'patner.html';
-                    });
-                })
-                .catch((error) => {
-                    // Handle Errors here
-                    const errorCode = error.code;
-                    const errorMessage = error.message;
-                    
-                    // Display error message
-                    errorContainer.textContent = `Error: ${errorMessage}`;
-                    
-                    // Remove loading state
-                    signInButton.classList.remove('loading');
-                    
-                    console.error('Sign-in Error:', error);
+            try {
+                // Sign in with Google
+                const result = await signInWithPopup(auth, googleProvider);
+                const user = result.user;
+
+                // Save user data in Firestore
+                await setDoc(doc(db, "users", user.uid), {
+                    name: user.displayName,
+                    email: user.email,
+                    picture: user.photoURL,
+                    id: user.uid,
+                    timestamp: serverTimestamp()
                 });
-        });
+
+                // Store user token and UID in session storage
+                sessionStorage.setItem('user_token', result._tokenResponse.idToken);
+                sessionStorage.setItem('user_uid', user.uid);
+
+                // Redirect to partner page
+                window.location.href = 'partner.html';
+            } catch (error) {
+                // Display error message
+                errorContainer.textContent = `Error: ${error.message}`;
+                console.error('Google Sign-In Error:', error);
+            } finally {
+                signInButton.classList.remove('loading');
+            }
+        };
 
         // Check Login Status
-        function checkLoginStatus() {
-            const token = localStorage.getItem('user_token');
-            const uid = localStorage.getItem('user_uid');
-            
-            if (token && uid) {
+        const checkLoginStatus = () => {
+            const userToken = sessionStorage.getItem('user_token');
+            const userUID = sessionStorage.getItem('user_uid');
+
+            if (userToken && userUID) {
                 auth.onAuthStateChanged((user) => {
-                    if (user && user.uid === uid) {
-                        window.location.href = 'patner.html';
+                    if (user && user.uid === userUID) {
+                        window.location.href = 'partner.html';
                     }
                 });
             }
-        }
+        };
 
-        // Run login check on page load
+        // Event Listener for Sign-In
+        signInButton.addEventListener('click', handleGoogleSignIn);
+
+        // Run login status check on page load
         window.onload = checkLoginStatus;
-    </script>
+          </script>  
 </body>
 </html>
