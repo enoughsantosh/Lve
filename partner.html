@@ -118,170 +118,204 @@
         <div id="pending-requests"></div>
     </div>
 
-    <script type="module">
-        import { auth, db, doc, getDoc, updateDoc, query, collection, where, setDoc, onSnapshot, getDocs, serverTimestamp } from './firebase-config.js';
+<script type="module">
+    import { auth, db, doc, getDoc, updateDoc, query, collection, where, setDoc, onSnapshot, getDocs, serverTimestamp } from './firebase-config.js';
 
-        const userId = localStorage.getItem('user_uid');
-        const profileName = document.getElementById('profile-name');
-        const uniqueId = document.getElementById('unique-id');
-        const searchIdInput = document.getElementById('search-id');
-        const searchButton = document.getElementById('search-button');
-        const searchResult = document.getElementById('search-result');
-        const sentRequests = document.getElementById('sent-requests');
-        const pendingRequests = document.getElementById('pending-requests');
+    const userId = localStorage.getItem('user_uid');
+    const profileName = document.getElementById('profile-name');
+    const uniqueId = document.getElementById('unique-id');
+    const searchIdInput = document.getElementById('search-id');
+    const searchButton = document.getElementById('search-button');
+    const searchResult = document.getElementById('search-result');
+    const sentRequests = document.getElementById('sent-requests');
+    const pendingRequests = document.getElementById('pending-requests');
 
-        // Load user profile
-        const loadUserProfile = async () => {
-            const userDoc = await getDoc(doc(db, 'users', userId));
-            if (userDoc.exists()) {
-                const data = userDoc.data();
-                profileName.textContent = data.name;
-                uniqueId.textContent = userId;
+    // Load user profile
+    const loadUserProfile = async () => {
+        const userDoc = await getDoc(doc(db, 'users', userId));
+        if (userDoc.exists()) {
+            const data = userDoc.data();
+            profileName.textContent = data.name;
+            uniqueId.textContent = userId;
 
-                uniqueId.addEventListener('click', () => {
-                    navigator.clipboard.writeText(userId);
-                    alert('Unique ID copied to clipboard!');
-                });
+            uniqueId.addEventListener('click', () => {
+                navigator.clipboard.writeText(userId);
+                alert('Unique ID copied to clipboard!');
+            });
 
-                document.getElementById('share-id').addEventListener('click', () => {
-                    navigator.share({
-                        title: 'My Unique ID',
-                        text: 'Connect with me on ADIKAR! My Unique ID is:',
-                        url: userId,
-                    }).catch((err) => console.error(err));
-                });
+            document.getElementById('share-id').addEventListener('click', () => {
+                navigator.share({
+                    title: 'My Unique ID',
+                    text: 'Connect with me on ADIKAR! My Unique ID is:',
+                    url: userId,
+                }).catch((err) => console.error(err));
+            });
+        }
+    };
+
+    // Search user by unique ID
+    const searchUser = async () => {
+        const searchId = searchIdInput.value.trim();
+        if (!searchId) return alert('Please enter a Unique ID.');
+        if (searchId === userId) return alert('You cannot send a request to yourself.');
+
+        const userDoc = await getDoc(doc(db, 'users', searchId));
+        searchResult.innerHTML = ''; // Clear previous results
+
+        if (userDoc.exists()) {
+            const user = userDoc.data();
+            const userCard = document.createElement('div');
+            userCard.classList.add('user-card');
+
+            const partnerDoc = await getDoc(doc(db, 'partners', userId));
+            const partnerData = partnerDoc.exists() ? partnerDoc.data() : null;
+
+            userCard.innerHTML = `
+                <h3>${user.name}</h3>
+                <p><b>Unique ID:</b> ${searchId}</p>
+                <button id="send-request">Send Request</button>
+            `;
+
+            if (partnerData && partnerData.partnerId === searchId) {
+                userCard.innerHTML += '<p class="already-connected">You are already connected!</p>';
             }
-        };
 
-        // Search user by unique ID
-        const searchUser = async () => {
-            const searchId = searchIdInput.value.trim();
-            if (!searchId) return alert('Please enter a Unique ID.');
-            if (searchId === userId) return alert('You cannot send a request to yourself.');
+            searchResult.appendChild(userCard);
 
-            const userDoc = await getDoc(doc(db, 'users', searchId));
-            searchResult.innerHTML = ''; // Clear previous results
-
-            if (userDoc.exists()) {
-                const user = userDoc.data();
-                const userCard = document.createElement('div');
-                userCard.classList.add('user-card');
-
-                const partnerDoc = await getDoc(doc(db, 'partners', userId));
-                const partnerData = partnerDoc.exists() ? partnerDoc.data() : null;
-
-                userCard.innerHTML = `
-                    <h3>${user.name}</h3>
-                    <p><b>Unique ID:</b> ${searchId}</p>
-                    <button id="send-request">Send Request</button>
-                `;
-
-                if (partnerData && partnerData.partnerId === searchId) {
-                    userCard.innerHTML += '<p class="already-connected">You are already connected!</p>';
+            const sendRequestButton = document.getElementById('send-request');
+            sendRequestButton.addEventListener('click', async () => {
+                if (partnerData && partnerData.status === 'pending') {
+                    return alert('You already have a pending request.');
                 }
 
-                searchResult.appendChild(userCard);
-
-                const sendRequestButton = document.getElementById('send-request');
-                sendRequestButton.addEventListener('click', async () => {
-                    if (partnerData && partnerData.status === 'pending') {
-                        return alert('You already have a pending request.');
-                    }
-
-                    await setDoc(doc(db, 'requests', searchId), {
-                        from: userId,
-                        to: searchId,
-                        timestamp: serverTimestamp(),
-                        status: 'pending',
-                    });
-
-                    alert('Request sent successfully!');
-                    loadSentRequests(); // Reload the sent requests section
+                await setDoc(doc(db, 'requests', searchId), {
+                    from: userId,
+                    to: searchId,
+                    timestamp: serverTimestamp(),
+                    status: 'pending',
                 });
-            } else {
-                searchResult.innerHTML = '<p>User not found.</p>';
-            }
-        };
 
-        // Listen for pending requests
-        const listenPendingRequests = () => {
-            const q = query(collection(db, 'requests'), where('to', '==', userId), where('status', '==', 'pending'));
-            onSnapshot(q, (snapshot) => {
-                pendingRequests.innerHTML = '';
-                snapshot.forEach((doc) => {
-                    const request = doc.data();
-                    const requestCard = document.createElement('div');
-                    requestCard.classList.add('user-card');
-
-                    requestCard.innerHTML = `
-                        <h3>${request.from}</h3>
-                        <button id="accept-${request.from}">Accept</button>
-                        <button id="reject-${request.from}">Reject</button>
-                    `;
-
-                    pendingRequests.appendChild(requestCard);
-
-                    document.getElementById(`accept-${request.from}`).addEventListener('click', async () => {
-                        // Accept the request and establish the connection
-                        await updateDoc(doc(db, 'partners', userId), {
-                            partnerId: request.from,
-                            status: 'connected',
-                            timestamp: serverTimestamp(),
-                        });
-
-                        await updateDoc(doc(db, 'partners', request.from), {
-                            partnerId: userId,
-                            status: 'connected',
-                            timestamp: serverTimestamp(),
-                        });
-
-                        // Reject all other pending requests
-                        const requestsSnapshot = await getDocs(query(collection(db, 'requests'), where('from', '==', request.from)));
-                        requestsSnapshot.forEach(async (requestDoc) => {
-                            await updateDoc(requestDoc.ref, {
-                                status: 'rejected',
-                            });
-                        });
-
-                        alert('You are now connected!');
-                        window.location.href = 'main.html';
-                    });
-
-                    document.getElementById(`reject-${request.from}`).addEventListener('click', async () => {
-                        await updateDoc(doc(db, 'requests', request.from), {
-                            status: 'rejected',
-                        });
-
-                        alert('Request rejected.');
-                    });
-                });
+                alert('Request sent successfully!');
+                loadSentRequests(); // Reload the sent requests section
             });
-        };
+        } else {
+            searchResult.innerHTML = '<p>User not found.</p>';
+        }
+    };
 
-        // Load Sent Requests
-        const loadSentRequests = async () => {
-            const q = query(collection(db, 'requests'), where('from', '==', userId), where('status', '==', 'pending'));
-            const snapshot = await getDocs(q);
-
-            sentRequests.innerHTML = ''; // Clear previous sent requests
-
-            snapshot.forEach((doc) => {
-                const request = doc.data();
+    // Listen for pending requests
+    const listenPendingRequests = () => {
+        const q = query(collection(db, 'requests'), where('to', '==', userId), where('status', '==', 'pending'));
+        onSnapshot(q, (snapshot) => {
+            pendingRequests.innerHTML = '';
+            snapshot.forEach((docSnapshot) => {
+                const request = docSnapshot.data();
                 const requestCard = document.createElement('div');
                 requestCard.classList.add('user-card');
-                requestCard.innerHTML = `
-                    <h3>${request.to}</h3>
-                    <p><b>Status:</b> Pending</p>
-                `;
-                sentRequests.appendChild(requestCard);
-            });
-        };
 
-        // Initialize
-        loadUserProfile();
-        loadSentRequests();
-        searchButton.addEventListener('click', searchUser);
-        listenPendingRequests();
-    </script>
+                requestCard.innerHTML = `
+                    <h3>${request.from}</h3>
+                    <button id="accept-${request.from}">Accept</button>
+                    <button id="reject-${request.from}">Reject</button>
+                `;
+
+                pendingRequests.appendChild(requestCard);
+
+// Handle accept button
+document.getElementById(`accept-${request.from}`).addEventListener('click', async () => {
+    try {
+        // Check if partner document exists for the current user
+        const partnerRef = doc(db, 'partners', userId);
+        const partnerDoc = await getDoc(partnerRef);
+
+        // If the partner document doesn't exist, create it
+        if (!partnerDoc.exists()) {
+            await setDoc(partnerRef, {
+                partnerId: request.from,
+                status: 'connected',
+                timestamp: serverTimestamp(),
+            });
+        } else {
+            await updateDoc(partnerRef, {
+                partnerId: request.from,
+                status: 'connected',
+                timestamp: serverTimestamp(),
+            });
+        }
+
+        // Check if partner document exists for the partner (the user who sent the request)
+        const partnerRefFrom = doc(db, 'partners', request.from);
+        const partnerDocFrom = await getDoc(partnerRefFrom);
+
+        // If the partner document doesn't exist for the other user, create it
+        if (!partnerDocFrom.exists()) {
+            await setDoc(partnerRefFrom, {
+                partnerId: userId,
+                status: 'connected',
+                timestamp: serverTimestamp(),
+            });
+        } else {
+            await updateDoc(partnerRefFrom, {
+                partnerId: userId,
+                status: 'connected',
+                timestamp: serverTimestamp(),
+            });
+        }
+
+        // Reject all other pending requests from the accepted user
+        const requestsSnapshot = await getDocs(query(collection(db, 'requests'), where('from', '==', request.from)));
+        requestsSnapshot.forEach(async (reqDoc) => {
+            if (reqDoc.id !== docSnapshot.id) {
+                await updateDoc(reqDoc.ref, {
+                    status: 'rejected',
+                });
+            }
+        });
+
+        alert('You are now connected!');
+        window.location.href = 'main.html'; // Redirect to main page
+    } catch (error) {
+        console.error("Error updating partner documents: ", error);
+        alert("An error occurred while accepting the request.");
+    }
+});
+                // Handle reject button
+                document.getElementById(`reject-${request.from}`).addEventListener('click', async () => {
+                    const requestRef = doc(db, 'requests', docSnapshot.id); // Correct reference to the request
+                    await updateDoc(requestRef, {
+                        status: 'rejected',
+                    });
+
+                    alert('Request rejected.');
+                });
+            });
+        });
+    };
+
+    // Load Sent Requests
+    const loadSentRequests = async () => {
+        const q = query(collection(db, 'requests'), where('from', '==', userId), where('status', '==', 'pending'));
+        const snapshot = await getDocs(q);
+
+        sentRequests.innerHTML = ''; // Clear previous sent requests
+
+        snapshot.forEach((docSnapshot) => {
+            const request = docSnapshot.data();
+            const requestCard = document.createElement('div');
+            requestCard.classList.add('user-card');
+            requestCard.innerHTML = `
+                <h3>${request.to}</h3>
+                <p><b>Status:</b> Pending</p>
+            `;
+            sentRequests.appendChild(requestCard);
+        });
+    };
+
+    // Initialize
+    loadUserProfile();
+    loadSentRequests();
+    searchButton.addEventListener('click', searchUser);
+    listenPendingRequests();
+</script>
 </body>
 </html>
