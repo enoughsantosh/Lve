@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ADIKAR - Love Connection</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore-compat.js"></script>
+    <style>
+        :root {
+            --primary-color: #6A5ACD;
+            --secondary-color: #8A4FFF;
+            --background-gradient: linear-gradient(135deg, #8A4FFF 0%, #5F3DC4 100%);
+            --text-color: #ffffff;
+            --card-background: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: var(--background-gradient);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: var(--text-color);
+            text-align: center;
+            padding: 15px;
+            overflow: hidden;
+            perspective: 1000px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background: var(--card-background);
+            border-radius: 25px;
+            padding: 35px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transform: rotateX(-10deg);
+            opacity: 0;
+            animation: fadeInUp 1s forwards ease-out;
+        }
+
+        .app-icon {
+            width: 120px;
+            height: 120px;
+            border-radius: 25px;
+            background: linear-gradient(145deg, #7B68EE, #6A5ACD);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transform: perspective(500px) rotateX(-10deg);
+            transition: all 0.3s ease;
+        }
+
+        .app-icon i {
+            font-size: 60px;
+            color: white;
+            text-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            font-family: 'Montserrat', sans-serif;
+            color: white;
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            letter-spacing: -1px;
+        }
+
+        .tagline {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .login-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px 20px;
+            border-radius: 15px;
+            border: none;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            z-index: -1;
+        }
+
+        .btn:hover::before {
+            left: 0;
+        }
+
+        .btn-google {
+            background-color: white;
+            color: #333;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-google i {
+            margin-right: 10px;
+            color: #4285F4;
+        }
+
+        .loading {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .error-message {
+            color: #ff4d4d;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        @keyframes fadeInUp {
+            to {
+                transform: rotateX(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .container {
+                padding: 25px 15px;
+            }
+
+            .app-icon {
+                width: 100px;
+                height: 100px;
+            }
+
+            h1 {
+                font-size: 28px;
+            }
+        }
+
+        /* Particle Background Effect */
+        #particles-js {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body>
+    <div id="particles-js"></div>
+    <div class="container">
+        <div class="app-icon">
+            <i class="bi bi-heart-fill"></i>
+        </div>
+        <h1>ADIKAR</h1>
+        <p class="tagline">Connect Hearts, Create Moments 💕</p>
+        
+        <div class="login-section">
+            <button id="google-signin-button" class="btn btn-google">
+                <i class="bi bi-google"></i> Continue with Google
+            </button>
+        </div>
+        
+        <div id="error-container" class="error-message"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script>
+        // Particle JS Configuration
+        particlesJS('particles-js', {
+            particles: {
+                number: { value: 80, density: { enable: true, value_area: 800 } },
+                color: { value: '#ffffff' },
+                shape: { type: 'circle' },
+                opacity: { value: 0.5, random: false },
+                size: { value: 3, random: true },
+                line_linked: { enable: true, distance: 150, color: '#ffffff', opacity: 0.4, width: 1 },
+                move: { enable: true, speed: 3, direction: 'none', random: false, straight: false, out_mode: 'out', bounce: false }
+            },
+            interactivity: {
+                detect_on: 'canvas',
+                events: { onhover: { enable: true, mode: 'repulse' }, onclick: { enable: true, mode: 'push' }, resize: true },
+                modes: { grab: { distance: 400, line_linked: { opacity: 1 } }, bubble: { distance: 400, size: 40, duration: 2, opacity: 8, speed: 3 } }
+            },
+            retina_detect: true
+        });
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCXtmiQ1Uf5Did8BKVJov3KKj9XdOQhW2c",
+            authDomain: "talk-to-13b66.firebaseapp.com",
+            projectId: "talk-to-13b66",
+            storageBucket: "talk-to-13b66.appspot.com",
+            messagingSenderId: "925074718284",
+            appId: "1:925074718284:web:1a65224802c4e3db96bee9",
+            measurementId: "G-6X72JLJ6PR"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const googleProvider = new firebase.auth.GoogleAuthProvider();
+
+        // Google Sign-In
+        document.getElementById('google-signin-button').addEventListener('click', () => {
+            const signInButton = document.getElementById('google-signin-button');
+            const errorContainer = document.getElementById('error-container');
+
+            // Clear previous errors
+            errorContainer.textContent = '';
+
+            // Add loading state
+            signInButton.classList.add('loading');
+
+            auth.signInWithPopup(googleProvider)
+                .then((result) => {
+                    const user = result.user;
+                    
+                    // Save user to Firestore
+                    return db.collection("users").doc(user.uid).set({
+                        name: user.displayName,
+                        email: user.email,
+                        picture: user.photoURL,
+                        id: user.uid,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    }).then(() => {
+                        // Store token and user info
+                        localStorage.setItem('user_token', result.credential.accessToken);
+                        localStorage.setItem('user_uid', user.uid);
+                        
+                        // Redirect to next page
+                        window.location.href = 'patner.html';
+                    });
+                })
+                .catch((error) => {
+                    // Handle Errors here
+                    const errorCode = error.code;
+                    const errorMessage = error.message;
+                    
+                    // Display error message
+                    errorContainer.textContent = `Error: ${errorMessage}`;
+                    
+                    // Remove loading state
+                    signInButton.classList.remove('loading');
+                    
+                    console.error('Sign-in Error:', error);
+                });
+        });
+
+        // Check Login Status
+        function checkLoginStatus() {
+            const token = localStorage.getItem('user_token');
+            const uid = localStorage.getItem('user_uid');
+            
+            if (token && uid) {
+                auth.onAuthStateChanged((user) => {
+                    if (user && user.uid === uid) {
+                        window.location.href = 'patner.html';
+                    }
+                });
+            }
+        }
+
+        // Run login check on page load
+        window.onload = checkLoginStatus;
+    </script>
+</body>
+</html>
