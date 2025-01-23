@@ -112,7 +112,7 @@
     <script type="module">
         import { auth, db, doc, getDoc, updateDoc, query, collection, where, setDoc, onSnapshot, serverTimestamp } from './firebase-config.js';
 
-        const userId = sessionStorage.getItem('user_uid');
+        const userId = localStorage.getItem('user_uid');
         const profileName = document.getElementById('profile-name');
         const uniqueId = document.getElementById('unique-id');
         const searchIdInput = document.getElementById('search-id');
