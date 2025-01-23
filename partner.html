@@ -147,6 +147,7 @@
         const searchUser = async () => {
             const searchId = searchIdInput.value.trim();
             if (!searchId) return alert('Please enter a Unique ID.');
+            if (searchId === userId) return alert('You cannot send a request to yourself.');
 
             const userDoc = await getDoc(doc(db, 'users', searchId));
             searchResult.innerHTML = ''; // Clear previous results
@@ -179,7 +180,9 @@
 
                     await setDoc(doc(db, 'requests', searchId), {
                         from: userId,
+                        to: searchId,
                         timestamp: serverTimestamp(),
+                        status: 'pending',
                     });
 
                     alert('Request sent successfully!');
@@ -191,7 +194,7 @@
 
         // Listen for pending requests
         const listenPendingRequests = () => {
-            const q = query(collection(db, 'requests'), where('to', '==', userId));
+            const q = query(collection(db, 'requests'), where('to', '==', userId), where('status', '==', 'pending'));
             onSnapshot(q, (snapshot) => {
                 pendingRequests.innerHTML = '';
                 snapshot.forEach((doc) => {
@@ -208,6 +211,7 @@
                     pendingRequests.appendChild(requestCard);
 
                     document.getElementById(`accept-${request.from}`).addEventListener('click', async () => {
+                        // Accept the request and establish the connection
                         await updateDoc(doc(db, 'partners', userId), {
                             partnerId: request.from,
                             status: 'connected',
@@ -218,6 +222,14 @@
                             partnerId: userId,
                             status: 'connected',
                             timestamp: serverTimestamp(),
+                        });
+
+                        // Reject all other pending requests
+                        const requestsSnapshot = await getDocs(query(collection(db, 'requests'), where('from', '==', request.from)));
+                        requestsSnapshot.forEach(async (requestDoc) => {
+                            await updateDoc(requestDoc.ref, {
+                                status: 'rejected',
+                            });
                         });
 
                         alert('You are now connected!');
