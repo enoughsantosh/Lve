@@ -11,6 +11,7 @@ import {
     collection,
     onSnapshot,
     query,
+    getDocs,
     where  // Add this line
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
@@ -46,5 +47,6 @@ export {
     collection,
     onSnapshot,
     query,
+    getDocs,
     where  // Add this line
 };
