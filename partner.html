@@ -224,11 +224,21 @@
 // Handle accept button
 document.getElementById(`accept-${request.from}`).addEventListener('click', async () => {
     try {
-        // Check if partner document exists for the current user
+        // 1. Remove all pending requests for both users
+        const sentRequestsSnapshot = await getDocs(query(collection(db, 'requests'), where('from', '==', userId), where('status', '==', 'pending')));
+        sentRequestsSnapshot.forEach(async (reqDoc) => {
+            await updateDoc(reqDoc.ref, { status: 'rejected' });
+        });
+
+        const receivedRequestsSnapshot = await getDocs(query(collection(db, 'requests'), where('to', '==', userId), where('status', '==', 'pending')));
+        receivedRequestsSnapshot.forEach(async (reqDoc) => {
+            await updateDoc(reqDoc.ref, { status: 'rejected' });
+        });
+
+        // 2. Set partnerUID for both users
         const partnerRef = doc(db, 'partners', userId);
         const partnerDoc = await getDoc(partnerRef);
-
-        // If the partner document doesn't exist, create it
+        
         if (!partnerDoc.exists()) {
             await setDoc(partnerRef, {
                 partnerId: request.from,
@@ -236,11 +246,6 @@ document.getElementById(`accept-${request.from}`).addEventListener('click', asyn
                 timestamp: serverTimestamp(),
             });
         } else {
-            // If already connected, redirect
-            if (partnerDoc.data().partnerId === request.from) {
-                window.location.href = 'main.html';
-                return;
-            }
             await updateDoc(partnerRef, {
                 partnerId: request.from,
                 status: 'connected',
@@ -248,11 +253,9 @@ document.getElementById(`accept-${request.from}`).addEventListener('click', asyn
             });
         }
 
-        // Check if partner document exists for the partner (the user who sent the request)
         const partnerRefFrom = doc(db, 'partners', request.from);
         const partnerDocFrom = await getDoc(partnerRefFrom);
-
-        // If the partner document doesn't exist for the other user, create it
+        
         if (!partnerDocFrom.exists()) {
             await setDoc(partnerRefFrom, {
                 partnerId: userId,
@@ -260,11 +263,6 @@ document.getElementById(`accept-${request.from}`).addEventListener('click', asyn
                 timestamp: serverTimestamp(),
             });
         } else {
-            // If already connected, redirect
-            if (partnerDocFrom.data().partnerId === userId) {
-                window.location.href = 'main.html';
-                return;
-            }
             await updateDoc(partnerRefFrom, {
                 partnerId: userId,
                 status: 'connected',
@@ -272,30 +270,20 @@ document.getElementById(`accept-${request.from}`).addEventListener('click', asyn
             });
         }
 
-        // Remove all pending requests for both users
-        const requestsSnapshotFrom = await getDocs(query(collection(db, 'requests'), where('from', '==', request.from)));
-        requestsSnapshotFrom.forEach(async (reqDoc) => {
-            if (reqDoc.id !== docSnapshot.id) {
-                await updateDoc(reqDoc.ref, {
-                    status: 'rejected',
-                });
-            }
-        });
+        // 3. Notify the other user that the request was accepted
+        // You can use any notification method here, e.g., sending a message or using Firebase Cloud Messaging
+        const otherUserRef = doc(db, 'users', request.from);
+        const otherUserDoc = await getDoc(otherUserRef);
+        if (otherUserDoc.exists()) {
+            const otherUser = otherUserDoc.data();
+            // Example: Send a notification to the other user (you can implement notification logic here)
+            alert(`Request accepted by ${userId}. You are now connected!`);
+        }
 
-        const requestsSnapshotTo = await getDocs(query(collection(db, 'requests'), where('to', '==', userId)));
-        requestsSnapshotTo.forEach(async (reqDoc) => {
-            if (reqDoc.id !== docSnapshot.id) {
-                await updateDoc(reqDoc.ref, {
-                    status: 'rejected',
-                });
-            }
-        });
-
-        // Notify both users
-        alert('You are now connected! You will be redirected.');
-        
-        // Redirect the user who clicked accept
+        // 4. Redirect the current user (the one who accepted) to the main page
+        alert('You are now connected! Redirecting...');
         window.location.href = 'main.html';
+
     } catch (error) {
         console.error("Error updating partner documents: ", error);
         alert("An error occurred while accepting the request.");
