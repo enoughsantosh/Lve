@@ -284,30 +284,11 @@ await updateDoc(userRefFrom, {
     partnerUID: userId,
 });
 
-        // 3. Notify the other user that the request was accepted
-        // You can use any notification method here, e.g., sending a message or using Firebase Cloud Messaging
-        const otherUserRef = doc(db, 'users', request.from);
-        const otherUserDoc = await getDoc(otherUserRef);
-        if (otherUserDoc.exists()) {
-            const otherUser = otherUserDoc.data();
-            // Example: Send a notification to the other user (you can implement notification logic here)
 
-        }
-        
-        
-                // 3. Notify the other user to redirect
-        // Use Firestore or a notification mechanism to trigger redirection for the other user
-        const notificationsRef = collection(db, 'notifications');
-        await addDoc(notificationsRef, {
-            userId: request.from, // Notify the partner user
-            message: `Your connection request with ${userId} was accepted!`,
-            action: 'redirect',
-            redirectTo: 'main.html',
-            timestamp: serverTimestamp(),
-        });
+
 
         // Notify the current user and redirect
-        alert('You are now connected! Redirecting to main...');
+        
         window.location.href = 'main.html';
     } catch (error) {
         console.error("Error while accepting the request: ", error);
@@ -349,7 +330,19 @@ await updateDoc(userRefFrom, {
         });
     };
 
-    // Initialize
+// Check if user already has a partner
+const checkIfUserHasPartner = async () => {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (userDoc.exists()) {
+        const data = userDoc.data();
+        if (data.partnerUID) {
+            // Redirect to index.html if partnerUID exists
+            window.location.href = 'index.html';
+        }
+    }
+};
+
+
     loadUserProfile();
     loadSentRequests();
     searchButton.addEventListener('click', searchUser);
