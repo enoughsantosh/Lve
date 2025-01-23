@@ -94,7 +94,7 @@
     <script type="module">
         import { db, doc, getDoc, updateDoc, onSnapshot } from './firebase-config.js';
 
-        const userId = sessionStorage.getItem('user_uid');
+        const userId = localStorage.getItem('user_uid');
         const userNameElem = document.getElementById('user-name');
         const userIdElem = document.getElementById('user-id');
         const partnerNameElem = document.getElementById('partner-name');
