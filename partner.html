@@ -86,6 +86,10 @@
         .pending-request-section {
             margin: 20px 0;
         }
+
+        .sent-request-section {
+            margin: 20px 0;
+        }
     </style>
 </head>
 <body>
@@ -104,13 +108,18 @@
 
     <div id="search-result"></div>
 
+    <div class="sent-request-section">
+        <h2>Sent Requests (Pending)</h2>
+        <div id="sent-requests"></div>
+    </div>
+
     <div class="pending-request-section">
         <h2>Pending Requests</h2>
         <div id="pending-requests"></div>
     </div>
 
     <script type="module">
-        import { auth, db, doc, getDoc, updateDoc, query, collection, where, setDoc, onSnapshot, serverTimestamp } from './firebase-config.js';
+        import { auth, db, doc, getDoc, updateDoc, query, collection, where, setDoc, onSnapshot, getDocs, serverTimestamp } from './firebase-config.js';
 
         const userId = localStorage.getItem('user_uid');
         const profileName = document.getElementById('profile-name');
@@ -118,6 +127,7 @@
         const searchIdInput = document.getElementById('search-id');
         const searchButton = document.getElementById('search-button');
         const searchResult = document.getElementById('search-result');
+        const sentRequests = document.getElementById('sent-requests');
         const pendingRequests = document.getElementById('pending-requests');
 
         // Load user profile
@@ -186,6 +196,7 @@
                     });
 
                     alert('Request sent successfully!');
+                    loadSentRequests(); // Reload the sent requests section
                 });
             } else {
                 searchResult.innerHTML = '<p>User not found.</p>';
@@ -247,8 +258,28 @@
             });
         };
 
+        // Load Sent Requests
+        const loadSentRequests = async () => {
+            const q = query(collection(db, 'requests'), where('from', '==', userId), where('status', '==', 'pending'));
+            const snapshot = await getDocs(q);
+
+            sentRequests.innerHTML = ''; // Clear previous sent requests
+
+            snapshot.forEach((doc) => {
+                const request = doc.data();
+                const requestCard = document.createElement('div');
+                requestCard.classList.add('user-card');
+                requestCard.innerHTML = `
+                    <h3>${request.to}</h3>
+                    <p><b>Status:</b> Pending</p>
+                `;
+                sentRequests.appendChild(requestCard);
+            });
+        };
+
         // Initialize
         loadUserProfile();
+        loadSentRequests();
         searchButton.addEventListener('click', searchUser);
         listenPendingRequests();
     </script>
