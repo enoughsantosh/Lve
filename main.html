@@ -92,7 +92,7 @@
     <div id="toast" class="toast">Your partner has been poked!</div>
 
     <script type="module">
-        import { db, doc, getDoc, updateDoc, onSnapshot } from './firebase-config.js';
+        import { db, doc, getDoc, updateDoc, setDoc, onSnapshot } from './firebase-config.js';
 
         const userId = localStorage.getItem('user_uid');
         const userNameElem = document.getElementById('user-name');
@@ -138,10 +138,13 @@
         pokeButton.addEventListener('click', async () => {
             if (!partnerId) return alert('No partner connected.');
 
-            await updateDoc(doc(db, 'notifications', partnerId), {
+            const notificationRef = doc(db, 'notifications', partnerId);
+
+            // Set the notification document if it doesn't exist
+            await setDoc(notificationRef, {
                 message: 'Your partner has poked you!',
                 timestamp: new Date(),
-            });
+            }, { merge: true }); // Ensure merge so the document is created if it doesn't exist
 
             showToast('Your partner has been poked!');
         });
