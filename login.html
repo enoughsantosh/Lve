@@ -248,41 +248,42 @@
             // Add loading state
             signInButton.classList.add('loading');
 
-            auth.signInWithPopup(googleProvider)
-                .then((result) => {
-                    const user = result.user;
-                    
-                    // Save user to Firestore
-                    return db.collection("users").doc(user.uid).set({
-                        name: user.displayName,
-                        email: user.email,
-                        picture: user.photoURL,
-                        id: user.uid,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    }).then(() => {
-                        // Store token and user info
-                        localStorage.setItem('user_token', result.credential.accessToken);
-                        localStorage.setItem('user_uid', user.uid);
-                        
-                        // Redirect to next page
-                        window.location.href = 'patner.html';
-                    });
-                })
-                .catch((error) => {
-                    // Handle Errors here
-                    const errorCode = error.code;
-                    const errorMessage = error.message;
-                    
-                    // Display error message
-                    errorContainer.textContent = `Error: ${errorMessage}`;
-                    
-                    // Remove loading state
-                    signInButton.classList.remove('loading');
-                    
-                    console.error('Sign-in Error:', error);
-                });
-        });
+auth.signInWithPopup(googleProvider)
+    .then((result) => {
+        const user = result.user;
 
+        // Save user to Firestore
+        return db.collection("users").doc(user.uid).set({
+            name: user.displayName,
+            email: user.email,
+            picture: user.photoURL,
+            id: user.uid,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(() => {
+            // Store token and user info
+            localStorage.setItem('user_token', result.credential.accessToken);
+            localStorage.setItem('user_uid', user.uid);
+            
+            // Redirect to next page
+            window.location.href = 'index.html';
+        });
+    })
+    .catch((error) => {
+        // Handle Errors
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        if (errorCode === 'auth/popup-closed-by-user') {
+            errorContainer.textContent = 'Sign-in process was interrupted. Please try again.';
+        } else {
+            errorContainer.textContent = `Error: ${errorMessage}`;
+        }
+
+        // Remove loading state
+        signInButton.classList.remove('loading');
+
+        console.error('Sign-in Error:', error);
+    });
+        });
         // Check Login Status
         function checkLoginStatus() {
             const token = localStorage.getItem('user_token');
@@ -291,7 +292,7 @@
             if (token && uid) {
                 auth.onAuthStateChanged((user) => {
                     if (user && user.uid === uid) {
-                        window.location.href = 'patner.html';
+                        window.location.href = 'index.html';
                     }
                 });
             }
