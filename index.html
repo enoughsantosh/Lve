@@ -141,8 +141,8 @@
 
         try {
             // Retrieve token and UID from session storage
-            const userToken = sessionStorage.getItem('user_token');
-            const userUID = sessionStorage.getItem('user_uid');
+            const userToken = localStorage.getItem('user_token');
+            const userUID = localStorage.getItem('user_uid');
 
             // If no token or UID, redirect to login
             if (!userToken || !userUID) {
@@ -170,7 +170,7 @@
         } catch (error) {
             // Display error message and redirect to login after delay
             errorContainer.textContent = `Error: ${error.message}`;
-            sessionStorage.clear(); // Clear session storage
+            localStorage.clear(); // Clear session storage
             setTimeout(() => {
                 window.location.href = 'login.html';
             }, 3000);
