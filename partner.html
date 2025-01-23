@@ -135,6 +135,12 @@
         const userDoc = await getDoc(doc(db, 'users', userId));
         if (userDoc.exists()) {
             const data = userDoc.data();
+                    // Check if partnerUID exists
+        if (data.partnerUID) {
+            // If partnerUID exists, redirect to index.html
+            window.location.href = 'index.html';
+            return;
+        }
             profileName.textContent = data.name;
             uniqueId.textContent = userId;
 
@@ -289,7 +295,7 @@ await updateDoc(userRefFrom, {
 
         // Notify the current user and redirect
         
-        window.location.href = 'main.html';
+        window.location.href = 'index.html';
     } catch (error) {
         console.error("Error while accepting the request: ", error);
         alert('An error occurred while processing your request. Please try again.');
