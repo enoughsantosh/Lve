@@ -235,40 +235,54 @@ document.getElementById(`accept-${request.from}`).addEventListener('click', asyn
             await updateDoc(reqDoc.ref, { status: 'rejected' });
         });
 
-        // 2. Set partnerUID for both users
-        const partnerRef = doc(db, 'partners', userId);
-        const partnerDoc = await getDoc(partnerRef);
-        
-        if (!partnerDoc.exists()) {
-            await setDoc(partnerRef, {
-                partnerId: request.from,
-                status: 'connected',
-                timestamp: serverTimestamp(),
-            });
-        } else {
-            await updateDoc(partnerRef, {
-                partnerId: request.from,
-                status: 'connected',
-                timestamp: serverTimestamp(),
-            });
-        }
+// 2. Set partnerUID in the 'partners' collection and the 'users' collection
+const partnerRef = doc(db, 'partners', userId);
+const partnerDoc = await getDoc(partnerRef);
 
-        const partnerRefFrom = doc(db, 'partners', request.from);
-        const partnerDocFrom = await getDoc(partnerRefFrom);
-        
-        if (!partnerDocFrom.exists()) {
-            await setDoc(partnerRefFrom, {
-                partnerId: userId,
-                status: 'connected',
-                timestamp: serverTimestamp(),
-            });
-        } else {
-            await updateDoc(partnerRefFrom, {
-                partnerId: userId,
-                status: 'connected',
-                timestamp: serverTimestamp(),
-            });
-        }
+// Update or set the partner document for the current user
+if (!partnerDoc.exists()) {
+    await setDoc(partnerRef, {
+        partnerId: request.from,
+        status: 'connected',
+        timestamp: serverTimestamp(),
+    });
+} else {
+    await updateDoc(partnerRef, {
+        partnerId: request.from,
+        status: 'connected',
+        timestamp: serverTimestamp(),
+    });
+}
+
+// Also update the `partnerUID` field in the 'users' collection for the current user
+const userRef = doc(db, 'users', userId);
+await updateDoc(userRef, {
+    partnerUID: request.from,
+});
+
+// Update or set the partner document for the other user (the one who sent the request)
+const partnerRefFrom = doc(db, 'partners', request.from);
+const partnerDocFrom = await getDoc(partnerRefFrom);
+
+if (!partnerDocFrom.exists()) {
+    await setDoc(partnerRefFrom, {
+        partnerId: userId,
+        status: 'connected',
+        timestamp: serverTimestamp(),
+    });
+} else {
+    await updateDoc(partnerRefFrom, {
+        partnerId: userId,
+        status: 'connected',
+        timestamp: serverTimestamp(),
+    });
+}
+
+// Also update the `partnerUID` field in the 'users' collection for the partner user
+const userRefFrom = doc(db, 'users', request.from);
+await updateDoc(userRefFrom, {
+    partnerUID: userId,
+});
 
         // 3. Notify the other user that the request was accepted
         // You can use any notification method here, e.g., sending a message or using Firebase Cloud Messaging
@@ -277,18 +291,32 @@ document.getElementById(`accept-${request.from}`).addEventListener('click', asyn
         if (otherUserDoc.exists()) {
             const otherUser = otherUserDoc.data();
             // Example: Send a notification to the other user (you can implement notification logic here)
-            alert(`Request accepted by ${userId}. You are now connected!`);
+
         }
+        
+        
+                // 3. Notify the other user to redirect
+        // Use Firestore or a notification mechanism to trigger redirection for the other user
+        const notificationsRef = collection(db, 'notifications');
+        await addDoc(notificationsRef, {
+            userId: request.from, // Notify the partner user
+            message: `Your connection request with ${userId} was accepted!`,
+            action: 'redirect',
+            redirectTo: 'main.html',
+            timestamp: serverTimestamp(),
+        });
 
-        // 4. Redirect the current user (the one who accepted) to the main page
-        alert('You are now connected! Redirecting...');
+        // Notify the current user and redirect
+        alert('You are now connected! Redirecting to main...');
         window.location.href = 'main.html';
-
     } catch (error) {
-        console.error("Error updating partner documents: ", error);
-        alert("An error occurred while accepting the request.");
+        console.error("Error while accepting the request: ", error);
+        alert('An error occurred while processing your request. Please try again.');
     }
 });
+
+
+
                 // Handle reject button
                 document.getElementById(`reject-${request.from}`).addEventListener('click', async () => {
                     const requestRef = doc(db, 'requests', docSnapshot.id); // Correct reference to the request
@@ -326,6 +354,8 @@ document.getElementById(`accept-${request.from}`).addEventListener('click', asyn
     loadSentRequests();
     searchButton.addEventListener('click', searchUser);
     listenPendingRequests();
+
 </script>
 </body>
 </html>
+
