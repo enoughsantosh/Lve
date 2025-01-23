@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Local Storage Viewer</title>
+</head>
+<body>
+  <h1>Local Storage Contents</h1>
+  <div id="storageData"></div>
+
+  <script>
+    // Function to display localStorage contents
+    function displayLocalStorage() {
+      const storageData = document.getElementById('storageData');
+      storageData.innerHTML = ''; // Clear the existing content
+      
+      // Loop through each item in localStorage
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        const value = localStorage.getItem(key);
+        storageData.innerHTML += `<p><strong>${key}:</strong> ${value}</p>`;
+      }
+    }
+
+    // Call the function on page load
+    window.onload = displayLocalStorage;
+  </script>
+</body>
+</html>
