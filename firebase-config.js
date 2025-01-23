@@ -1,9 +1,9 @@
 // Import Firebase modules
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
-// Firebase configuration object
+// Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyDLW0P7Op6coJkNzJj0ck9pLNdneJplcbI",
     authDomain: "love-6996.firebaseapp.com",
@@ -16,9 +16,9 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-// Export Firebase modules
 const auth = getAuth(app);
 const db = getFirestore(app);
+const googleProvider = new GoogleAuthProvider();
 
-export { auth, db };
+// Export Firebase modules
+export { auth, db, googleProvider, signInWithPopup, doc, setDoc, serverTimestamp };
