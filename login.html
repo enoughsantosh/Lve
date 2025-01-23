@@ -223,55 +223,62 @@
     
         
           <script type="module">
-        // Import Firebase modules from config
-        import { auth, db, googleProvider, signInWithPopup, doc, setDoc, serverTimestamp } from './firebase-config.js';
+    // Import Firebase modules from config
+    import { auth, db, googleProvider, signInWithPopup, doc, setDoc, serverTimestamp } from './firebase-config.js';
 
-        const signInButton = document.getElementById('google-signin-button');
-        const errorContainer = document.getElementById('error-container');
+    const signInButton = document.getElementById('google-signin-button');
+    const errorContainer = document.getElementById('error-container');
 
-        // Clear previous errors
-        const clearErrors = () => {
-            errorContainer.textContent = '';
-        };
+    // Clear previous errors
+    const clearErrors = () => {
+        errorContainer.textContent = '';
+    };
 
-        // Handle Google Sign-In
-        const handleGoogleSignIn = async () => {
-            clearErrors();
-            signInButton.classList.add('loading');
+    // Handle Google Sign-In
+    const handleGoogleSignIn = async () => {
+        clearErrors();
+        signInButton.classList.add('loading');
 
-            try {
-                // Sign in with Google
-                const result = await signInWithPopup(auth, googleProvider);
-                const user = result.user;
+        try {
+            // Sign in with Google
+            const result = await signInWithPopup(auth, googleProvider);
+            const user = result.user;
 
-                // Save user data in Firestore
-                await setDoc(doc(db, "users", user.uid), {
-                    name: user.displayName,
-                    email: user.email,
-                    picture: user.photoURL,
-                    id: user.uid,
-                    timestamp: serverTimestamp()
-                });
+            // Save user data in Firestore
+            await setDoc(doc(db, "users", user.uid), {
+                name: user.displayName,
+                email: user.email,
+                picture: user.photoURL,
+                id: user.uid,
+                timestamp: serverTimestamp()
+            });
 
-                // Store user token and UID in session storage
-                sessionStorage.setItem('user_token', result._tokenResponse.idToken);
-                sessionStorage.setItem('user_uid', user.uid);
+            // Store user token and UID in localStorage
+            localStorage.setItem('user_token', result._tokenResponse.idToken);
+            localStorage.setItem('user_uid', user.uid);
 
-                // Redirect to partner page
-                window.location.href = 'index.html';
-            } catch (error) {
-                // Display error message
+            // Redirect to partner page
+            window.location.href = 'index.html';
+        } catch (error) {
+            // Display error message
+            if (error.code === 'auth/popup-closed-by-user') {
+                errorContainer.textContent = 'You closed the popup. Please try again.';
+            } else if (error.code === 'auth/network-request-failed') {
+                errorContainer.textContent = 'Network error. Please check your connection.';
+            } else {
                 errorContainer.textContent = `Error: ${error.message}`;
-                console.error('Google Sign-In Error:', error);
-            } finally {
-                signInButton.classList.remove('loading');
             }
-        };
+            console.error('Google Sign-In Error:', error);
+        } finally {
+            signInButton.classList.remove('loading');
+        }
+    };
 
-        // Check Login Status
-        const checkLoginStatus = () => {
-            const userToken = sessionStorage.getItem('user_token');
-            const userUID = sessionStorage.getItem('user_uid');
+    // Check Login Status
+    const checkLoginStatus = async () => {
+        try {
+            const userToken = localStorage.getItem('user_token');
+            const userUID = localStorage.getItem('user_uid');
 
             if (userToken && userUID) {
                 auth.onAuthStateChanged((user) => {
@@ -280,13 +287,16 @@
                     }
                 });
             }
-        };
+        } catch (error) {
+            console.error('Error checking login status:', error);
+        }
+    };
 
-        // Event Listener for Sign-In
-        signInButton.addEventListener('click', handleGoogleSignIn);
+    // Event Listener for Sign-In
+    signInButton.addEventListener('click', handleGoogleSignIn);
 
-        // Run login status check on page load
-        window.onload = checkLoginStatus;
-          </script>  
+    // Run login status check on page load
+    window.onload = checkLoginStatus;
+</script>
 </body>
 </html>
