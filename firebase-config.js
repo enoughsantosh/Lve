@@ -14,6 +14,7 @@ import {
     getDocs,
     where  // Add this line
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import { getMessaging, onMessage, getToken } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-messaging.js";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -31,6 +32,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
+const messaging = getMessaging(app);
 
 // Export Firebase modules
 export { 
@@ -48,5 +50,6 @@ export {
     onSnapshot,
     query,
     getDocs,
+    messaging, getToken, onMessage,
     where  // Add this line
 };
