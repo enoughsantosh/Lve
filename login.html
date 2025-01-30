@@ -259,7 +259,8 @@ auth.signInWithPopup(googleProvider)
             picture: user.photoURL,
             id: user.uid,
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        }).then(() => {
+        }, { merge: true })  // Merge to avoid overwriting existing data
+        .then(() => {
             // Store token and user info
             localStorage.setItem('user_token', result.credential.accessToken);
             localStorage.setItem('user_uid', user.uid);
