@@ -212,6 +212,31 @@ onMessage(messaging, (payload) => {
     // Show notification
     new Notification(title, { body });
 });
+
+
+        
+
+// Initialize Firebase Cloud Messaging
+const messaging = firebase.messaging();
+
+async function saveFCMToken(userId) {
+    try {
+        const token = await messaging.getToken({
+            vapidKey: "BBe8YAc-ZzVq4Wc2gngjaajuvmjucyKApXsXMibpzkx0y8I8Ggd_b6krNbbQH-WOYVxpldCreqxnbOCnUQcBTTE"
+        });
+
+        if (token) {
+            await setDoc(doc(db, 'users', userId), { fcmToken: token }, { merge: true });
+            console.log("FCM Token saved!");
+        }
+    } catch (error) {
+        console.error("Error getting FCM token:", error);
+    }
+}
+
+// Call this function after user logs in
+const userId = localStorage.getItem("user_uid");
+if (userId) saveFCMToken(userId);
     </script>
 </body>
 </html>
