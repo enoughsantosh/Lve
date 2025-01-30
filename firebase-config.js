@@ -1,6 +1,6 @@
 // Import Firebase modules
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { 
     getFirestore, 
     doc, 
@@ -13,8 +13,10 @@ import {
     query,
     getDocs,
     where  // Add this line
-} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
-import { getMessaging, onMessage, getToken } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-messaging.js";
+} from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-messaging.js';
+
 
 // Firebase configuration
 const firebaseConfig = {
@@ -34,6 +36,7 @@ const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 const messaging = getMessaging(app);
 
+
 // Export Firebase modules
 export { 
     app, 
@@ -50,6 +53,8 @@ export {
     onSnapshot,
     query,
     getDocs,
-    messaging, getToken, onMessage,
+    messaging,
+    getToken,
+    onMessage,
     where  // Add this line
 };
