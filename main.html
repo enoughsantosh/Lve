@@ -92,7 +92,7 @@
     <div id="toast" class="toast">Your partner has been poked!</div>
 
     <script type="module">
-        import { db, doc, getDoc, updateDoc, setDoc, onSnapshot } from './firebase-config.js';
+        import { db, doc, getDoc, updateDoc, setDoc, onSnapshot, messaging, onMessage, getToken } from './firebase-config.js';
 
         const userId = localStorage.getItem('user_uid');
         const userNameElem = document.getElementById('user-name');
@@ -136,18 +136,33 @@
 
         // Poke Partner
         pokeButton.addEventListener('click', async () => {
-            if (!partnerId) return alert('No partner connected.');
+    if (!partnerId) return alert('No partner connected.');
 
-            const notificationRef = doc(db, 'notifications', partnerId);
+    // Get partner's FCM token from Firestore
+    const partnerDoc = await getDoc(doc(db, 'users', partnerId));
+    if (partnerDoc.exists()) {
+        const partnerData = partnerDoc.data();
+        const partnerToken = partnerData.fcmToken;
 
-            // Set the notification document if it doesn't exist
-            await setDoc(notificationRef, {
-                message: 'Your partner has poked you!',
-                timestamp: new Date(),
-            }, { merge: true }); // Ensure merge so the document is created if it doesn't exist
+        if (!partnerToken) {
+            alert("Partner has not enabled notifications.");
+            return;
+        }
 
-            showToast('Your partner has been poked!');
+        // Send notification using Firebase Cloud Function
+        fetch("YOUR_CLOUD_FUNCTION_URL", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                token: partnerToken,
+                title: "Poke Alert!",
+                body: "Your partner has poked you!",
+            }),
         });
+
+        showToast('Your partner has been poked!');
+    }
+});
 
         // Show Toast
         const showToast = (message) => {
@@ -170,6 +185,24 @@
         // Initialize
         loadUserDetails();
         loadPartnerDetails();
+
+        const requestNotificationPermission = async () => {
+    try {
+        const permission = await Notification.requestPermission();
+        if (permission === "granted") {
+            console.log("Notification permission granted.");
+            const token = await getToken(messaging, { vapidKey: "YOUR_VAPID_KEY" });
+            console.log("FCM Token:", token);
+            localStorage.setItem("fcm_token", token);
+        } else {
+            console.log("Notification permission denied.");
+        }
+    } catch (error) {
+        console.error("Error getting notification permission:", error);
+    }
+};
+
+requestNotificationPermission();
     </script>
 </body>
 </html>
