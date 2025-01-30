@@ -191,7 +191,7 @@
         const permission = await Notification.requestPermission();
         if (permission === "granted") {
             console.log("Notification permission granted.");
-            const token = await getToken(messaging, { vapidKey: "YOUR_VAPID_KEY" });
+            const token = await getToken(messaging, { vapidKey: "BBe8YAc-ZzVq4Wc2gngjaajuvmjucyKApXsXMibpzkx0y8I8Ggd_b6krNbbQH-WOYVxpldCreqxnbOCnUQcBTTE" });
             console.log("FCM Token:", token);
             localStorage.setItem("fcm_token", token);
         } else {
