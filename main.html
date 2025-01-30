@@ -79,6 +79,7 @@
             <h2>Your Details</h2>
             <p><b>Name:</b> <span id="user-name"></span></p>
             <p><b>Unique ID:</b> <span id="user-id"></span></p>
+            <p><b>FCM Token:</b> <span id="fcm-token"></span></p> <!-- New FCM token display -->
         </div>
 
         <div class="partner">
@@ -92,17 +93,56 @@
     <div id="toast" class="toast">Your partner has been poked!</div>
 
     <script type="module">
-        import { db, doc, getDoc, updateDoc, setDoc, onSnapshot, messaging, onMessage, getToken } from './firebase-config.js';
+        import { db, doc, getDoc, setDoc, messaging, getToken } from './firebase-config.js';
 
         const userId = localStorage.getItem('user_uid');
         const userNameElem = document.getElementById('user-name');
         const userIdElem = document.getElementById('user-id');
+        const fcmTokenElem = document.getElementById('fcm-token'); // New element for displaying token
         const partnerNameElem = document.getElementById('partner-name');
         const partnerIdElem = document.getElementById('partner-id');
         const pokeButton = document.getElementById('poke-partner');
         const toast = document.getElementById('toast');
 
         let partnerId = null;
+
+        // Initialize FCM
+        const initializeFCM = async () => {
+            try {
+                if (!('serviceWorker' in navigator)) {
+                    throw new Error('Service Worker not supported');
+                }
+
+                const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                console.log('Service Worker registered', registration);
+
+                const permission = await Notification.requestPermission();
+                if (permission !== 'granted') {
+                    throw new Error('Notification permission denied');
+                }
+
+                const currentToken = await getToken(messaging, {
+                    vapidKey: "BBe8YAc-ZzVq4Wc2gngjaajuvmjucyKApXsXMibpzkx0y8I8Ggd_b6krNbbQH-WOYVxpldCreqxnbOCnUQcBTTE"
+                });
+
+                if (!currentToken) {
+                    throw new Error('No FCM token received');
+                }
+
+                // Save token to Firestore
+                await setDoc(doc(db, 'users', userId), {
+                    fcmToken: currentToken
+                }, { merge: true });
+
+                console.log('FCM Token saved:', currentToken);
+
+                // Display FCM token in the UI
+                fcmTokenElem.textContent = currentToken;
+
+            } catch (error) {
+                console.error('FCM initialization failed:', error);
+            }
+        };
 
         // Load User Details
         const loadUserDetails = async () => {
@@ -136,33 +176,32 @@
 
         // Poke Partner
         pokeButton.addEventListener('click', async () => {
-    if (!partnerId) return alert('No partner connected.');
+            if (!partnerId) return alert('No partner connected.');
 
-    // Get partner's FCM token from Firestore
-    const partnerDoc = await getDoc(doc(db, 'users', partnerId));
-    if (partnerDoc.exists()) {
-        const partnerData = partnerDoc.data();
-        const partnerToken = partnerData.fcmToken;
+            const partnerDoc = await getDoc(doc(db, 'users', partnerId));
+            if (partnerDoc.exists()) {
+                const partnerData = partnerDoc.data();
+                const partnerToken = partnerData.fcmToken;
 
-        if (!partnerToken) {
-            alert("Partner has not enabled notifications.");
-            return;
-        }
+                if (!partnerToken) {
+                    alert("Partner has not enabled notifications.");
+                    return;
+                }
 
-        // Send notification using Firebase Cloud Function
-        fetch("https://firebasepush.vercel.app", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                token: partnerToken,
-                title: "Poke Alert!",
-                body: "Your partner has poked you!",
-            }),
+                // Send notification using Firebase Cloud Function
+                fetch("https://firebasepush.vercel.app", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        token: partnerToken,
+                        title: "Poke Alert!",
+                        body: "Your partner has poked you!",
+                    }),
+                });
+
+                showToast('Your partner has been poked!');
+            }
         });
-
-        showToast('Your partner has been poked!');
-    }
-});
 
         // Show Toast
         const showToast = (message) => {
@@ -174,69 +213,10 @@
             }, 3000);
         };
 
-        // Listen for Notifications
-        onSnapshot(doc(db, 'notifications', userId), (docSnapshot) => {
-            if (docSnapshot.exists()) {
-                const data = docSnapshot.data();
-                showToast(data.message);
-            }
-        });
-
         // Initialize
         loadUserDetails();
         loadPartnerDetails();
-
-        const requestNotificationPermission = async () => {
-    try {
-        const permission = await Notification.requestPermission();
-        if (permission === "granted") {
-            console.log("Notification permission granted.");
-            const token = await getToken(messaging, { vapidKey: "BBe8YAc-ZzVq4Wc2gngjaajuvmjucyKApXsXMibpzkx0y8I8Ggd_b6krNbbQH-WOYVxpldCreqxnbOCnUQcBTTE" });
-            console.log("FCM Token:", token);
-            localStorage.setItem("fcm_token", token);
-        } else {
-            console.log("Notification permission denied.");
-        }
-    } catch (error) {
-        console.error("Error getting notification permission:", error);
-    }
-};
-
-requestNotificationPermission();
-
-        
-onMessage(messaging, (payload) => {
-    console.log("Message received: ", payload);
-    const { title, body } = payload.notification;
-
-    // Show notification
-    new Notification(title, { body });
-});
-
-
-        
-
-// Initialize Firebase Cloud Messaging
-
-
-async function saveFCMToken(userId) {
-    try {
-        const token = await messaging.getToken({
-            vapidKey: "BBe8YAc-ZzVq4Wc2gngjaajuvmjucyKApXsXMibpzkx0y8I8Ggd_b6krNbbQH-WOYVxpldCreqxnbOCnUQcBTTE"
-        });
-
-        if (token) {
-            await setDoc(doc(db, 'users', userId), { fcmToken: token }, { merge: true });
-            console.log("FCM Token saved!");
-        }
-    } catch (error) {
-        console.error("Error getting FCM token:", error);
-    }
-}
-
-// Call this function after user logs in
-
-if (userId) saveFCMToken(userId);
+        initializeFCM();
     </script>
 </body>
 </html>
