@@ -203,6 +203,15 @@
 };
 
 requestNotificationPermission();
+
+        
+onMessage(messaging, (payload) => {
+    console.log("Message received: ", payload);
+    const { title, body } = payload.notification;
+
+    // Show notification
+    new Notification(title, { body });
+});
     </script>
 </body>
 </html>
