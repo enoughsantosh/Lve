@@ -150,7 +150,7 @@
         }
 
         // Send notification using Firebase Cloud Function
-        fetch("YOUR_CLOUD_FUNCTION_URL", {
+        fetch("https://firebasepush.vercel.app", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
